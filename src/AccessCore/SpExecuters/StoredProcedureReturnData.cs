@@ -1,4 +1,4 @@
-﻿namespace DatabaseAccess.SpExecuters
+﻿namespace AccessCore.SpExecuters
 {
     /// <summary>
     /// Enum for stored procedure return data

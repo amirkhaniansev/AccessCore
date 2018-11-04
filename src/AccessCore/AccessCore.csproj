@@ -8,6 +8,7 @@
     <Description>AccessCore is  a lightweight ORM for working with MS SQL Server.</Description>
     <Authors>Sevak Amirkhanian</Authors>
     <Company />
+    <PackageTags>ORM</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

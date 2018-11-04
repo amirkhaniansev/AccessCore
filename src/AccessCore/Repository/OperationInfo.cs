@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DatabaseAccess.Repository
+namespace AccessCore.Repository
 {
     /// <summary>
     /// Class for operation information

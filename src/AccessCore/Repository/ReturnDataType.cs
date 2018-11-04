@@ -1,4 +1,4 @@
-﻿namespace DatabaseAccess.Repository
+﻿namespace AccessCore.Repository
 {
     /// <summary>
     /// Enum for return data type

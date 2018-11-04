@@ -1,12 +1,13 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Linq.Expressions;
 
-namespace DatabaseAccess.SpExecuters
+namespace AccessCore.SpExecuters
 {
     /// <summary>
     /// Class for accessing data from database executing procedures.
@@ -22,12 +23,12 @@ namespace DatabaseAccess.SpExecuters
         /// <summary>
         /// Dictionary of  cached properties
         /// </summary>
-        private readonly Dictionary<Type, PropertyInfo[]> _cachedProperties;
+        private readonly ConcurrentDictionary<Type, PropertyInfo[]> _cachedProperties;
 
         /// <summary>
         /// Dictionary of cached mappers
         /// </summary>
-        private readonly Dictionary<Type, Delegate> _cachedMappers;
+        private readonly ConcurrentDictionary<Type, Delegate> _cachedMappers;
 
         /// <summary>
         /// Gets connection string
@@ -40,7 +41,7 @@ namespace DatabaseAccess.SpExecuters
         public SpExecuter() { }
 
         /// <summary>
-        /// Creates new instance of <see cref="DatabaseAccess.SpExecuter"/> with the given connection string.
+        /// Creates new instance of <see cref="SpExecuter"/> with the given connection string.
         /// </summary>
         /// <param name="connString"></param>
         public SpExecuter(string connString)
@@ -49,18 +50,18 @@ namespace DatabaseAccess.SpExecuters
             this._connString = connString;
 
             // initializes cached properties
-            this._cachedProperties = new Dictionary<Type, PropertyInfo[]>();
+            this._cachedProperties = new ConcurrentDictionary<Type, PropertyInfo[]>();
 
             // initializes cached mappers
-            this._cachedMappers = new Dictionary<Type, Delegate>();
+            this._cachedMappers = new ConcurrentDictionary<Type, Delegate>();
         }
 
         /// <summary>
         /// Executes store procedure which return data is enumerable.
         /// </summary>
         /// <typeparam name="TResult">Type of Result.</typeparam>
-        /// <param name="procedureName">Proceduer name</param>
-        /// <param name="parameters">Procedure parametes</param>
+        /// <param name="procedureName">Procedure name</param>
+        /// <param name="parameters">Procedure parameters</param>
         /// <returns>Enumerable of rows</returns>
         public IEnumerable<TResult> ExecuteSp<TResult>(string procedureName, IEnumerable<KeyValuePair<string, object>> parameters = null)
             where TResult : class
@@ -344,7 +345,8 @@ namespace DatabaseAccess.SpExecuters
             var mapper = lambda.Compile();
 
             // adding compiled mapper to cached mappers
-            this._cachedMappers.Add(resultType, mapper);
+            if(!this._cachedMappers.TryAdd(resultType, mapper))
+                throw new Exception("CachedMapper");
 
             // returning mapper
             return mapper;
@@ -368,7 +370,8 @@ namespace DatabaseAccess.SpExecuters
             var properties = type.GetProperties();
 
             // adding them to cached properties
-            this._cachedProperties.Add(type, properties);
+            if(!this._cachedProperties.TryAdd(type, properties))
+                throw new Exception("CachedMapper");
 
             // returning properties
             return properties;

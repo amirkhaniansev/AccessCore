@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Xml.Linq;
 
-namespace DatabaseAccess.Repository
+namespace AccessCore.Repository
 {
     /// <summary>
     /// Class for mappinng information

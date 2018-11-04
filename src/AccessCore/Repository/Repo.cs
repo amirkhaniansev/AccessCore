@@ -1,9 +1,9 @@
-﻿using System.Linq;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using DatabaseAccess.SpExecuters;
+using AccessCore.SpExecuters;
 
-namespace DatabaseAccess.Repository
+namespace AccessCore.Repository
 {
     /// <summary>
     /// Repository class

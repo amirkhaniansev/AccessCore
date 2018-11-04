@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace DatabaseAccess.SpExecuters
+namespace AccessCore.SpExecuters
 {
     /// <summary>
     /// Interface for accessing database

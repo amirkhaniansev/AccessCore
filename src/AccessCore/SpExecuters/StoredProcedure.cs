@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DatabaseAccess.SpExecuters
+namespace AccessCore.SpExecuters
 {
     /// <summary>
     /// Class for stored procedures

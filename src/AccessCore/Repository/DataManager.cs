@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using DatabaseAccess.SpExecuters;
+using AccessCore.SpExecuters;
 
-namespace DatabaseAccess.Repository
+namespace AccessCore.Repository
 {
     /// <summary>
     /// Class for managing data
@@ -25,7 +26,7 @@ namespace DatabaseAccess.Repository
         /// <summary>
         /// Dictionary of cached parameter getters
         /// </summary>
-        private readonly Dictionary<Type, Delegate> _cachedParameterGetters;
+        private readonly ConcurrentDictionary<Type, Delegate> _cachedParameterGetters;
 
         /// <summary>
         /// Creates new instance of <see cref="DataManager"/>
@@ -39,7 +40,7 @@ namespace DatabaseAccess.Repository
             this._mapInfo = mapInfo;
 
             // initializing
-            this._cachedParameterGetters = new Dictionary<Type, Delegate>();
+            this._cachedParameterGetters = new ConcurrentDictionary<Type, Delegate>();
         }
 
         /// <summary>
@@ -310,7 +311,8 @@ namespace DatabaseAccess.Repository
             var getter = lambda.Compile();
 
             // adding compiled getter to cached getters
-            this._cachedParameterGetters.Add(type, getter);
+            if (!this._cachedParameterGetters.TryAdd(type, getter))
+                throw new Exception("CachedParameterGetters");
 
             // returning getter
             return getter;
