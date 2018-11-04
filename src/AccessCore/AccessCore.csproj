@@ -6,6 +6,8 @@
     <PackageLicenseUrl>https://github.com/amirkhaniansev/AccessCore/blob/master/LICENSE</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/amirkhaniansev/AccessCore</RepositoryUrl>
     <Description>AccessCore is  a lightweight ORM for working with MS SQL Server.</Description>
+    <Authors>Sevak Amirkhanian</Authors>
+    <Company />
   </PropertyGroup>
 
   <ItemGroup>
