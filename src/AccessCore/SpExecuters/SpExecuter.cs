@@ -207,7 +207,7 @@ namespace AccessCore.SpExecuters
                     // returning amount of affected rows after non-query stored procedure execution
                     sqlCommand.ExecuteNonQuery();
 
-                    return sqlCommand.Parameters["ReturnParameter"].Value;
+                    return sqlCommand.Parameters["ReturnValue"].Value;
                 }
             }
         }
