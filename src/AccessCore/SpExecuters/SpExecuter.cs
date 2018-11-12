@@ -205,7 +205,9 @@ namespace AccessCore.SpExecuters
                 else
                 {
                     // returning amount of affected rows after non-query stored procedure execution
-                    return sqlCommand.ExecuteNonQuery();
+                    sqlCommand.ExecuteNonQuery();
+
+                    return sqlCommand.Parameters["ReturnParameter"].Value;
                 }
             }
         }
@@ -213,16 +215,16 @@ namespace AccessCore.SpExecuters
         /// <summary>
         /// Constructs Sql Command
         /// </summary>
-        /// <param name="sqlConnetion">Sql Connection</param>
+        /// <param name="sqlConnection">Sql Connection</param>
         /// <param name="storedProcedure">Stored procedure</param>
         /// <returns>Constructed command</returns>
-        private SqlCommand ConstructCommand(SqlConnection sqlConnetion, StoredProcedure storedProcedure)
+        private SqlCommand ConstructCommand(SqlConnection sqlConnection, StoredProcedure storedProcedure)
         {
             // constructing command
             var sqlCommand = new SqlCommand
             {
                 CommandText = storedProcedure.Name,
-                Connection = sqlConnetion,
+                Connection = sqlConnection,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -230,9 +232,21 @@ namespace AccessCore.SpExecuters
             if (storedProcedure.Parameters != null)
             {
                 foreach (var parameter in storedProcedure.Parameters)
-                {
+                {                   
                     sqlCommand.Parameters.AddWithValue(parameter.Key, parameter.Value);
                 }
+            }
+
+            if (storedProcedure.StoredProcedureReturnData == StoredProcedureReturnData.Nothing)
+            {
+                var returnParameter = new SqlParameter
+                {
+                    ParameterName = "ReturnValue",
+                    Direction = ParameterDirection.ReturnValue,
+                    SqlDbType = SqlDbType.Int
+                };
+
+                sqlCommand.Parameters.Add(returnParameter);
             }
 
             // returning constructed command
