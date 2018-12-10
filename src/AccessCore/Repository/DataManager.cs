@@ -57,7 +57,7 @@ namespace AccessCore.Repository
             var operationInfo = this.GetOperationInfo(operationName);
 
             // getting parameters
-            var spParams = null as IEnumerable<KeyValuePair<string, object>>;
+            var spParams = default(IEnumerable<KeyValuePair<string, object>>);
 
             // constructing parameters
             if (parameters != null)
@@ -67,12 +67,14 @@ namespace AccessCore.Repository
             // executing specific operation
             if (operationInfo.ReturnDataType == ReturnDataType.Entity)
                 return this._spExecuter.ExecuteEntitySp<TResult>(operationInfo.SpName, spParams);
-            else if (operationInfo.ReturnDataType == ReturnDataType.Enumerable)
+
+            if (operationInfo.ReturnDataType == ReturnDataType.Enumerable)
                 return this._spExecuter.ExecuteSp<TResult>(operationInfo.SpName, spParams);
-            else if (operationInfo.ReturnDataType == ReturnDataType.Scalar)
+
+            if (operationInfo.ReturnDataType == ReturnDataType.Scalar)
                 return this._spExecuter.ExecuteScalarSp<object>(operationInfo.SpName, spParams);
-            else
-                return this._spExecuter.ExecuteSpNonQuery(operationInfo.SpName, spParams);
+
+            return this._spExecuter.ExecuteSpNonQuery(operationInfo.SpName, spParams);
         }
 
         /// <summary>
