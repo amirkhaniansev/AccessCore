@@ -1,60 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Xml.Linq;
 
-namespace AccessCore.Repository
+namespace AccessCore.Repository.MapInfos
 {
     /// <summary>
-    /// Class for mappinng information
+    /// Class for mapping SQL to models with XML desciption
     /// </summary>
-    public class MapInfo
+    public class XmlMapInfo : MapInfo
     {
         /// <summary>
-        /// Mapping info file path
+        /// Creates new instance of <see cref="XmlMapInfo"/>
         /// </summary>
-        private readonly string _path;
-
-        /// <summary>
-        /// Gets or sets operations names
-        /// </summary>
-        public ReadOnlyDictionary<string, string> OpNames
+        /// <param name="path">path of XML file containing mapping information.</param>
+        public XmlMapInfo(string path) : base(path)
         {
-            get; private set;
         }
 
         /// <summary>
-        /// Gets or sets return values
+        /// Sets map info from XML file
         /// </summary>
-        public ReadOnlyDictionary<string, ReturnDataType> ReturnValues
+        public override void SetMapInfo()
         {
-            get; private set;
-        }
+            base.SetMapInfo();
 
-        /// <summary>
-        /// Gets or sets parameters
-        /// </summary>
-        public ReadOnlyDictionary<string, Dictionary<string, string>> Parameters
-        {
-            get; private set;
-        }
-
-        /// <summary>
-        /// Creates new instance of <see cref="MapInfo"/>
-        /// </summary>
-        /// <param name="path"></param>
-        public MapInfo(string path)
-        {
-            this._path = path;
-
-            this.SetMapInfo();
-        }
-
-        /// <summary>
-        /// Gets mapping information from file
-        /// </summary>
-        private void SetMapInfo()
-        {
             // getting xml document
             var xml = XDocument.Load(this._path);
 
@@ -67,7 +36,7 @@ namespace AccessCore.Repository
             var parameters = new Dictionary<string, Dictionary<string, string>>();
 
             // loop over operations
-            foreach(var operation in operations)
+            foreach (var operation in operations)
             {
                 // getting operation name
                 var opName = operation.Attribute("name");
@@ -81,8 +50,8 @@ namespace AccessCore.Repository
                 // getting return values and adding
                 var returnDataType = operation.Element("returnDataType");
 
-                returnValues.Add(opName.Value, 
-                    (ReturnDataType)Enum.Parse(typeof(ReturnDataType),returnDataType.Value));
+                returnValues.Add(opName.Value,
+                    (ReturnDataType)Enum.Parse(typeof(ReturnDataType), returnDataType.Value));
 
                 // getting parameters xml element
                 var paramsXML = operation.Element("parameters");
@@ -109,10 +78,7 @@ namespace AccessCore.Repository
                 else parameters.Add(opName.Value, null);
             }
 
-            // setting properties
-            this.OpNames = new ReadOnlyDictionary<string, string>(opNames);
-            this.ReturnValues = new ReadOnlyDictionary<string, ReturnDataType>(returnValues);
-            this.Parameters = new ReadOnlyDictionary<string, Dictionary<string, string>>(parameters);
+            this.ConstructMapInfo(opNames, returnValues, parameters);
         }
     }
 }
