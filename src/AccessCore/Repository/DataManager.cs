@@ -88,14 +88,7 @@ namespace AccessCore.Repository
         public Task<object> OperateAsync<TResult>(string operationName, IEnumerable<KeyValuePair<string, object>> parameters = null)
             where TResult : class
         {
-            // creating task
-            var task = new Task<object>(() => this.Operate<TResult>(operationName, parameters));
-
-            // starting task
-            task.Start();
-
-            // returning task
-            return task;
+            return Task.Run(() => this.Operate<TResult>(operationName, parameters));
         }
 
         /// <summary>
@@ -127,14 +120,7 @@ namespace AccessCore.Repository
         public Task<object> OperateAsync<TParameter,TResult>(string operationName,TParameter parameter)
             where TResult:class
         {
-            // creating task
-            var task = new Task<object>(() => this.Operate<TParameter,TResult>(operationName, parameter));
-
-            // starting task
-            task.Start();
-
-            // returning task
-            return task;
+            return Task.Run(() => this.Operate<TParameter, TResult>(operationName, parameter));
         }
 
         /// <summary>
