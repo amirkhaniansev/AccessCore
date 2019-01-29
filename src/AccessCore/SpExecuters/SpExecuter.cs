@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.SqlClient;
-using System.Linq.Expressions;
 using System.Reflection;
+using System.Data.Common;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
+using System.Linq.Expressions;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace AccessCore.SpExecuters
 {
@@ -13,33 +13,23 @@ namespace AccessCore.SpExecuters
     /// Class for accessing data from database executing procedures.
     /// Works only with MS SQL server. 
     /// </summary>
-    public class SpExecuter : ISpExecuter
+    public abstract class SpExecuter : ISpExecuter
     {
         /// <summary>
         /// SQL server connection string
         /// </summary>
-        private readonly string _connString;
+        protected readonly string _connString;
 
         /// <summary>
         /// Dictionary of  cached properties
         /// </summary>
-        private readonly ConcurrentDictionary<Type, PropertyInfo[]> _cachedProperties;
+        protected readonly ConcurrentDictionary<Type, PropertyInfo[]> _cachedProperties;
 
         /// <summary>
         /// Dictionary of cached mappers
         /// </summary>
-        private readonly ConcurrentDictionary<Type, Delegate> _cachedMappers;
-
-        /// <summary>
-        /// Gets connection string
-        /// </summary>
-        public string ConnectionString => this._connString;
-
-        /// <summary>
-        /// Creates new instance of <see cref="SpExecuter"/>
-        /// </summary>
-        public SpExecuter() { }
-
+        protected readonly ConcurrentDictionary<Type, Delegate> _cachedMappers;
+        
         /// <summary>
         /// Creates new instance of <see cref="SpExecuter"/> with the given connection string.
         /// </summary>
@@ -104,12 +94,7 @@ namespace AccessCore.SpExecuters
         public Task<IEnumerable<TResult>> ExecuteSpAsync<TResult>(string procedureName,
                     IEnumerable<KeyValuePair<string, object>> parameters = null) where TResult : class
         {
-            var task = new Task<IEnumerable<TResult>>(() =>
-                   this.ExecuteSp<TResult>(procedureName, parameters));
-
-            task.Start();
-
-            return task;
+            return Task.Run(() => this.ExecuteSp<TResult>(procedureName, parameters));
         }
 
         /// <summary>
@@ -154,112 +139,19 @@ namespace AccessCore.SpExecuters
         /// <typeparam name="TResult">Type of result</typeparam>
         /// <param name="storedProcedure">Stored procedure</param>
         /// <returns>Result of stored procedure execution</returns>
-        private object Execute<TResult>(StoredProcedure storedProcedure) where TResult : class
-        {
-            // checking argument
-            if (string.IsNullOrEmpty(storedProcedure.Name))
-            {
-                throw new ArgumentException("Procedure name");
-            }
-
-            // establishing sql database connection
-            using (var sqlConnection = new SqlConnection(this._connString))
-            {
-                // constructing command
-                var sqlCommand = this.ConstructCommand(sqlConnection, storedProcedure);
-
-                // opening connection
-                sqlConnection.Open();
-
-                // executing stored procedures depending on their type
-                if (storedProcedure.StoredProcedureReturnData == StoredProcedureReturnData.Enumerable)
-                {
-                    // list of results
-                    var list = new List<TResult>();
-
-                    // executing reader and retrieving data
-                    using (var reader = sqlCommand.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            list.Add(this.RetrieveEnumerableFromReader<TResult>(reader));
-                        }
-                    }
-
-                    // returning list of results
-                    return list;
-                }
-                else if (storedProcedure.StoredProcedureReturnData == StoredProcedureReturnData.OneRow)
-                {
-                    using (var reader = sqlCommand.ExecuteReader())
-                    {
-                        reader.Read();
-                        return this.RetrieveEnumerableFromReader<TResult>(reader);
-                    }
-                }
-                else if (storedProcedure.StoredProcedureReturnData == StoredProcedureReturnData.Scalar)
-                {
-                    // returning scalar result
-                    return sqlCommand.ExecuteScalar();
-                }
-                else
-                {
-                    // returning amount of affected rows after non-query stored procedure execution
-                    sqlCommand.ExecuteNonQuery();
-
-                    return sqlCommand.Parameters["ReturnValue"].Value;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Constructs Sql Command
-        /// </summary>
-        /// <param name="sqlConnection">Sql Connection</param>
-        /// <param name="storedProcedure">Stored procedure</param>
-        /// <returns>Constructed command</returns>
-        private SqlCommand ConstructCommand(SqlConnection sqlConnection, StoredProcedure storedProcedure)
-        {
-            // constructing command
-            var sqlCommand = new SqlCommand
-            {
-                CommandText = storedProcedure.Name,
-                Connection = sqlConnection,
-                CommandType = CommandType.StoredProcedure
-            };
-
-            // if there are parameters then we need to add them to the command
-            if (storedProcedure.Parameters != null)
-            {
-                foreach (var parameter in storedProcedure.Parameters)
-                {                   
-                    sqlCommand.Parameters.AddWithValue(parameter.Key, parameter.Value);
-                }
-            }
-
-            if (storedProcedure.StoredProcedureReturnData == StoredProcedureReturnData.Nothing)
-            {
-                var returnParameter = new SqlParameter
-                {
-                    ParameterName = "ReturnValue",
-                    Direction = ParameterDirection.ReturnValue,
-                    SqlDbType = SqlDbType.Int
-                };
-
-                sqlCommand.Parameters.Add(returnParameter);
-            }
-
-            // returning constructed command
-            return sqlCommand;
-        }
-
+        internal abstract object Execute<TResult>(StoredProcedure storedProcedure) 
+            where TResult : class;
+       
         /// <summary>
         /// Retrieves data from reader
         /// </summary>
         /// <typeparam name="TResult">Type of result</typeparam>
+        /// <typeparam name="TDataReader">Type of data reader</typeparam>
         /// <param name="reader">Reader</param>
         /// <returns>Result</returns>
-        private TResult RetrieveEnumerableFromReader<TResult>(SqlDataReader reader) where TResult : class
+        protected TResult RetrieveEnumerableFromReader<TResult, TDataReader>(TDataReader reader) 
+            where TResult : class
+            where TDataReader : DbDataReader
         {
             // checking argument
             if (reader == null)
@@ -274,7 +166,7 @@ namespace AccessCore.SpExecuters
             var properties = this.GetProperties<TResult>();
 
             // getting mapper
-            var mapper = this.GetMapper<TResult>(properties);
+            var mapper = this.GetMapper<TResult, TDataReader>(properties);
 
             // executing mapper
             return mapper(reader);
@@ -284,16 +176,18 @@ namespace AccessCore.SpExecuters
         /// Gets mapper from cached mappers if it exists, otherwise creates the new one.
         /// </summary>
         /// <typeparam name="TResult">Type of result</typeparam>
+        /// <typeparam name="TDataReader">Type of data reader</typeparam>
         /// <param name="properties">Properties</param>
         /// <returns>Sql Data reader to object mapper</returns>
-        private Func<SqlDataReader, TResult> GetMapper<TResult>(PropertyInfo[] properties)
+        protected Func<TDataReader, TResult> GetMapper<TResult, TDataReader>(PropertyInfo[] properties)
+            where TDataReader : DbDataReader
         {
             // getting result type
             var resultType = typeof(TResult);
 
             //  checking if the mapper exists in cached mappers
             if (this._cachedMappers.ContainsKey(resultType))
-                return (Func<SqlDataReader, TResult>)this._cachedMappers[resultType];
+                return (Func<TDataReader, TResult>)this._cachedMappers[resultType];
 
             // getting type of Sql Data Reader
             var sqlReaderType = typeof(SqlDataReader);
@@ -353,7 +247,7 @@ namespace AccessCore.SpExecuters
             var body = Expression.Block(variables, expressions);
 
             // constructing lambda
-            var lambda = Expression.Lambda<Func<SqlDataReader, TResult>>(body, sourceExpr);
+            var lambda = Expression.Lambda<Func<TDataReader, TResult>>(body, sourceExpr);
 
             // compiling lambda expression
             var mapper = lambda.Compile();
