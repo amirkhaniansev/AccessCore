@@ -13,6 +13,18 @@ namespace AccessCore.SpExecuters
         /// <summary>
         /// Creates new instance of <see cref="MySqlSpExecuter"/>
         /// </summary>
+        /// <param name="userId">user id</param>
+        /// <param name="password">password</param>
+        /// <param name="server">server</param>
+        /// <param name="database">database</param>
+        public MySqlSpExecuter(string userId, string password, string server, string database) :
+            this(MySqlSpExecuter.ConstructConnectionString(userId, password, server, database))
+        {
+        }
+
+        /// <summary>
+        /// Creates new instance of <see cref="MySqlSpExecuter"/>
+        /// </summary>
         /// <param name="connString">Connection String</param>
         public MySqlSpExecuter(string connString) : base(connString)
         {
@@ -122,6 +134,25 @@ namespace AccessCore.SpExecuters
 
             // returning constructed command
             return sqlCommand;
+        }
+
+        /// <summary>
+        /// Constructs connection string from the given parameters.
+        /// </summary>
+        /// <param name="userId">user id</param>
+        /// <param name="password">password</param>
+        /// <param name="server">server</param>
+        /// <param name="database">database</param>
+        /// <returns>connection string</returns>
+        private static string ConstructConnectionString(
+            string userId, string password, string server, string database)
+        {
+            var builder = new MySqlConnectionStringBuilder();
+            builder.UserID = userId;
+            builder.Password = password;
+            builder.Server = server;
+            builder.Database = database;
+            return builder.ToString();
         }
     }
 }

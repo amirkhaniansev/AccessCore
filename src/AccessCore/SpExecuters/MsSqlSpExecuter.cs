@@ -11,6 +11,18 @@ namespace AccessCore.SpExecuters
     public class MsSqlSpExecuter : SpExecuter
     {
         /// <summary>
+        /// Creates new instance of the <see cref="MsSqlSpExecuter"/>
+        /// </summary>
+        /// <param name="userId">user id</param>
+        /// <param name="password">password</param>
+        /// <param name="server">server</param>
+        /// <param name="database">database</param>
+        public MsSqlSpExecuter(string userId, string password, string server, string database) 
+            : this(MsSqlSpExecuter.ConstructConnectionString(userId, password, server, database))
+        {
+        }
+
+        /// <summary>
         /// Creates new instance of <see cref="MsSqlSpExecuter"/>
         /// </summary>
         /// <param name="connString">Connection string</param>
@@ -122,6 +134,25 @@ namespace AccessCore.SpExecuters
 
             // returning constructed command
             return sqlCommand;
+        }
+
+        /// <summary>
+        /// Constructs connection string from the given parameters.
+        /// </summary>
+        /// <param name="userId">user id</param>
+        /// <param name="password">password</param>
+        /// <param name="server">server</param>
+        /// <param name="database">database</param>
+        /// <returns>connection string</returns>
+        private static string ConstructConnectionString(
+            string userId, string password, string server, string database)
+        {
+            var builder = new SqlConnectionStringBuilder();
+            builder.UserID = userId;
+            builder.Password = password;
+            builder.DataSource = server;
+            builder.InitialCatalog = database;
+            return builder.ToString();
         }
     }
 }
