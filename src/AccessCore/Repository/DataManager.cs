@@ -34,7 +34,7 @@ namespace AccessCore.Repository
         /// </summary>
         /// <param name="spExecuter">Stored procedure exucuter</param>
         /// <param name="mapInfo">Mapping information</param>
-        public DataManager(SpExecuter spExecuter, MapInfo mapInfo)
+        public DataManager(ISpExecuter spExecuter, MapInfo mapInfo)
         {
             // setting fields
             this._spExecuter = spExecuter;
