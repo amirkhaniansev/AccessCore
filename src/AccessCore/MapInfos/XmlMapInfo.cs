@@ -7,7 +7,7 @@ namespace AccessCore.Repository.MapInfos
     /// <summary>
     /// Class for mapping SQL to models with XML desciption
     /// </summary>
-    public class XmlMapInfo : MapInfo
+    public class XmlMapInfo : FileBasedMapInfo
     {
         /// <summary>
         /// Creates new instance of <see cref="XmlMapInfo"/>

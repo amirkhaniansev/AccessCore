@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using AccessCore.SpExecuters;
 using AccessCore.Repository.MapInfos;
+using AccessCore.Helpers;
 
 namespace AccessCore.Repository
 {
@@ -190,7 +191,7 @@ namespace AccessCore.Repository
 
             // checking if parameter has primitive type
             // note that for DataManager primitive types are not only .NET primitive types but also string and decimal
-            if (type.IsPrimitive || type == typeof(string) || type == typeof(decimal) || type == typeof(DateTime))
+            if (TypeHelper.IsPrimitive(type))
             {
                 return new[]
                 {

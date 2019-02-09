@@ -7,13 +7,8 @@ namespace AccessCore.Repository.MapInfos
     /// <summary>
     /// Class for mappinng information
     /// </summary>
-    public abstract class MapInfo 
+    public abstract class MapInfo
     {
-        /// <summary>
-        /// Mapping info file path
-        /// </summary>
-        protected readonly string _path;
-
         /// <summary>
         /// Boolean value indicating if the map info is constructed
         /// </summary>
@@ -41,15 +36,6 @@ namespace AccessCore.Repository.MapInfos
         public ReadOnlyDictionary<string, Dictionary<string, string>> Parameters
         {
             get; private set;
-        }
-
-        /// <summary>
-        /// Creates new instance of <see cref="MapInfo"/>
-        /// </summary>
-        /// <param name="path"></param>
-        public MapInfo(string path)
-        {
-            this._path = path;
         }
 
         /// <summary>

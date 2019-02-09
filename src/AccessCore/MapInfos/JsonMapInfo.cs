@@ -9,7 +9,7 @@ namespace AccessCore.Repository.MapInfos
     /// <summary>
     /// Class for mapping SQL to models with JSON description
     /// </summary>
-    public class JsonMapInfo : MapInfo
+    public class JsonMapInfo : FileBasedMapInfo
     {
         /// <summary>
         /// Creates new instance of <see cref="JsonMapInfo"/>
