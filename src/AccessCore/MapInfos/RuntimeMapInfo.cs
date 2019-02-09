@@ -35,8 +35,8 @@ namespace AccessCore.Repository.MapInfos
         /// <param name="primitiveSpParameterName">Name of stored procedure parameter which is primitive.</param>
         public RuntimeMapInfo RegisterOperation<TInput>(
             string operationName,
-            ReturnDataType returnDataType = ReturnDataType.NoReturnValue,
             string storedProcedureName = null,
+            ReturnDataType returnDataType = ReturnDataType.NoReturnValue,
             string primitiveSpParameterName = null)
         {
             return this.RegisterOperation(
