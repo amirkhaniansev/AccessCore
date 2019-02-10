@@ -1,6 +1,6 @@
 ﻿namespace AccessCore.Repository.MapInfos
 {
-    public abstract class FileBasedMapInfo : MapInfo
+    public class FileBasedMapInfo : MapInfo
     {
         /// <summary>
         /// Mapping info file path

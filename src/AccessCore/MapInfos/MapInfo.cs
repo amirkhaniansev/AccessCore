@@ -7,7 +7,7 @@ namespace AccessCore.Repository.MapInfos
     /// <summary>
     /// Class for mappinng information
     /// </summary>
-    public abstract class MapInfo
+    public class MapInfo
     {
         /// <summary>
         /// Boolean value indicating if the map info is constructed
@@ -36,6 +36,44 @@ namespace AccessCore.Repository.MapInfos
         public ReadOnlyDictionary<string, Dictionary<string, string>> Parameters
         {
             get; private set;
+        }
+
+        /// <summary>
+        /// Merges the given mapinfo to the current.
+        /// </summary>
+        /// <param name="mapInfo">Map information that will be merged.</param>
+        /// <returns>merged map informations</returns>
+        public MapInfo Merge(MapInfo mapInfo)
+        {
+            var opNames = new Dictionary<string, string>();
+            var returnValues = new Dictionary<string, ReturnDataType>();
+            var parameters = new Dictionary<string, Dictionary<string, string>>();
+
+            var keys = this.OpNames.Keys;
+
+            foreach (var key in keys)
+            {
+                opNames.Add(key, this.OpNames[key]);
+                returnValues.Add(key, this.ReturnValues[key]);
+                parameters.Add(key, this.Parameters[key]);
+            }
+
+            keys = mapInfo.OpNames.Keys;
+
+            foreach (var key in keys)
+            {
+                if (!OpNames.ContainsKey(key))
+                {
+                    opNames.Add(key, mapInfo.OpNames[key]);
+                    returnValues.Add(key, mapInfo.ReturnValues[key]);
+                    parameters.Add(key, mapInfo.Parameters[key]);
+                }
+            }
+
+            var result = new MapInfo();
+            result._isConstructed = true;
+            result.ConstructMapInfo(opNames, returnValues, parameters);
+            return result;
         }
 
         /// <summary>
