@@ -104,7 +104,7 @@ namespace AccessCore.Repository
             where TResult:class
         {
             // getting parameters using reflection
-            var parameters = this.GetParameters(paramater);
+            var parameters = this.GetParameters(paramater, operationName);
 
             // returning result
             return this.Operate<TResult>(operationName, parameters);
@@ -138,10 +138,12 @@ namespace AccessCore.Repository
             where TResult:class
         {
             // getting parameters
-            var parameters = this.GetParameters(firstParameter).ToList();
+            var parameters = this
+                .GetParameters(firstParameter, operationName)
+                .ToList();
 
             // adding parameter
-            parameters.AddRange(this.GetParameters(secondParameter));
+            parameters.AddRange(this.GetParameters(secondParameter, operationName));
 
             // returning result
             return this.Operate<TResult>(operationName, parameters);
@@ -182,9 +184,12 @@ namespace AccessCore.Repository
         /// Gets properties as operation parameters from complex parameter using reflection
         /// </summary>
         /// <typeparam name="TParameter">Type of parameter</typeparam>
-        /// <param name="entity">entity</param>
+        /// <param name="parameter">parameter</param>
+        /// <param name="opName">Operation name.</param>
         /// <returns>parameters</returns>
-        private IEnumerable<KeyValuePair<string, object>> GetParameters<TParameter>(TParameter parameter)
+        private IEnumerable<KeyValuePair<string, object>> GetParameters<TParameter>(
+            TParameter parameter,
+            string opName)
         {
             // getting type of complex parameter
             var type = parameter.GetType();
@@ -200,7 +205,7 @@ namespace AccessCore.Repository
             }
 
             // getting getter
-            var getter = this.GetParamaterGetter<TParameter>();
+            var getter = this.GetParamaterGetter<TParameter>(opName);
 
             // executing getter
             return getter(parameter);
@@ -210,8 +215,9 @@ namespace AccessCore.Repository
         /// Gets parameter getter if it exists in cached getters otherwise creates new one
         /// </summary>
         /// <typeparam name="TParameter">Type of parameter.</typeparam>
+        /// <param name="opName">Operation name.</param>
         /// <returns>getter</returns>
-        private Func<TParameter,List<KeyValuePair<string,object>>> GetParamaterGetter<TParameter>()
+        private Func<TParameter,List<KeyValuePair<string,object>>> GetParamaterGetter<TParameter>(string opName)
         {
             // getting type of parameter
             var type = typeof(TParameter);
@@ -232,8 +238,9 @@ namespace AccessCore.Repository
             // getting List Add method information
             var addInfo = listType.GetMethod("Add");
 
-            // getting properties
-            var properties = type.GetProperties();
+            var mapInfo = this._mapInfo.Parameters[opName];
+            var properties = type.GetProperties()
+                .Where(property => mapInfo.ContainsKey(property.Name));
 
             // constructing KeyValuePair variable expression
             var kvp = Expression.Parameter(kvpType);
@@ -258,21 +265,23 @@ namespace AccessCore.Repository
 
             // adding list assignment
             expressions.Add(listAssign);
-            
+
+            var propValue = default(MemberExpression);
+            var value = default(UnaryExpression);
+            var name = default(ConstantExpression);
+            var init = default(NewExpression);
+            var assign = default(BinaryExpression);
+            var add = default(MethodCallExpression);
+
             // loop over the properties and add key value pair to list expressions
             foreach(var property in properties)
             {
-                var propValue = Expression.Property(sourceExpr, property.Name);
-
-                var value = Expression.Convert(propValue, typeof(object));
-
-                var name = Expression.Constant(property.Name);
-
-                var init = Expression.New(kvpCtor, name, value);
-
-                var assign = Expression.Assign(kvp, init);
-
-                var add = Expression.Call(list, addInfo,kvp);
+                propValue   = Expression.Property(sourceExpr, property.Name);
+                value       = Expression.Convert(propValue, typeof(object));
+                name        = Expression.Constant(property.Name);
+                init        = Expression.New(kvpCtor, name, value);
+                assign      = Expression.Assign(kvp, init);
+                add         = Expression.Call(list, addInfo,kvp);
 
                 expressions.Add(assign);
                 expressions.Add(add);
