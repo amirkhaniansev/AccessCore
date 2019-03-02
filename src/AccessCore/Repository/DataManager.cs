@@ -15,6 +15,8 @@ namespace AccessCore.Repository
     /// </summary>
     public class DataManager
     {
+        #region fields
+
         /// <summary>
         /// Stored procedure executer
         /// </summary>
@@ -26,14 +28,18 @@ namespace AccessCore.Repository
         private readonly MapInfo _mapInfo;
 
         /// <summary>
-        /// Dictionary of cached parameter getters
+        /// Cached parameter getter
         /// </summary>
         private readonly ConcurrentDictionary<Type, Delegate> _cachedParameterGetters;
+
+        #endregion
+
+        #region constructors
 
         /// <summary>
         /// Creates new instance of <see cref="DataManager"/>
         /// </summary>
-        /// <param name="spExecuter">Stored procedure exucuter</param>
+        /// <param name="spExecuter">Stored procedures</param>
         /// <param name="mapInfo">Mapping information</param>
         public DataManager(ISpExecuter spExecuter, MapInfo mapInfo)
         {
@@ -45,14 +51,20 @@ namespace AccessCore.Repository
             this._cachedParameterGetters = new ConcurrentDictionary<Type, Delegate>();
         }
 
+        #endregion
+
+        #region public API
+
         /// <summary>
-        /// Operates the action.
+        /// Operates the database action asynchronously.
         /// </summary>
-        /// <typeparam name="TResult">Type of resuly</typeparam>
-        /// <param name="operationName">Operation mapped name.</param>
-        /// <param name="parameters">Parameters</param>
-        /// <returns>Result</returns>
-        public object Operate<TResult>(string operationName, IEnumerable<KeyValuePair<string, object>> parameters = null)
+        /// <typeparam name="TResult">Type of result.</typeparam>
+        /// <param name="operationName">Operation name.</param>
+        /// <param name="parameters">parameters</param>
+        /// <returns>result</returns>
+        public async Task<object> OperateAsync<TResult>(
+            string operationName, 
+            IEnumerable<KeyValuePair<string, object>> parameters = null)
             where TResult : class
         {
             // getting operation info
@@ -68,92 +80,67 @@ namespace AccessCore.Repository
 
             // executing specific operation
             if (operationInfo.ReturnDataType == ReturnDataType.Entity)
-                return this._spExecuter.ExecuteEntitySp<TResult>(operationInfo.SpName, spParams);
+                return await this._spExecuter.ExecuteEntitySpAsync<TResult>(operationInfo.SpName, parameters);
 
             if (operationInfo.ReturnDataType == ReturnDataType.Enumerable)
-                return this._spExecuter.ExecuteSp<TResult>(operationInfo.SpName, spParams);
+                return await this._spExecuter.ExecuteSpAsync<TResult>(operationInfo.SpName, parameters);
 
             if (operationInfo.ReturnDataType == ReturnDataType.Scalar)
-                return this._spExecuter.ExecuteScalarSp<object>(operationInfo.SpName, spParams);
+                return await this._spExecuter.ExecuteScalarSpAsync<TResult>(operationInfo.SpName, parameters);
 
-            return this._spExecuter.ExecuteSpNonQuery(operationInfo.SpName, spParams);
+            return await this._spExecuter.ExecuteSpNonQueryAsync(operationInfo.SpName, spParams);
         }
 
         /// <summary>
-        /// Operates the action asynchronosuly
+        /// Operates the database action with the given entity parameter.
         /// </summary>
+        /// <typeparam name="TParamater">Type of parameter</typeparam>
         /// <typeparam name="TResult">Type of result</typeparam>
-        /// <param name="operationName">Operation name</param>
-        /// <param name="parameters">Parameters</param>
-        /// <returns>Result</returns>
-        public Task<object> OperateAsync<TResult>(string operationName, IEnumerable<KeyValuePair<string, object>> parameters = null)
-            where TResult : class
-        {
-            return Task.Run(() => this.Operate<TResult>(operationName, parameters));
-        }
-
-        /// <summary>
-        /// Operates the action
-        /// </summary>
-        /// <typeparam name="TParamater">Type of complex parameter.</typeparam>
-        /// <typeparam name="TResult">Type of result</typeparam>
-        /// <param name="operationName">Operation name</param>
-        /// <param name="paramater">Parameters</param>
-        /// <returns>Result</returns>
-        public object Operate<TParamater,TResult>(string operationName,TParamater paramater)
-            where TResult:class
-        {
-            // getting parameters using reflection
-            var parameters = this.GetParameters(paramater, operationName);
-
-            // returning result
-            return this.Operate<TResult>(operationName, parameters);
-        }
-
-        /// <summary>
-        /// Operates the action asynchronously
-        /// </summary>
-        /// <typeparam name="TParameter">Type of parameter</typeparam>
-        /// <typeparam name="TResult">Type of result</typeparam>
-        /// <param name="operationName">Operation name</param>
-        /// <param name="parameter">Parameter</param>
+        /// <param name="operationName">operation name</param>
+        /// <param name="parameter">parameter</param>
         /// <returns>result</returns>
-        public Task<object> OperateAsync<TParameter,TResult>(string operationName,TParameter parameter)
+        public async Task<object> OperateAsync<TParamater,TResult>(string operationName,TParamater parameter)
             where TResult:class
         {
-            return Task.Run(() => this.Operate<TParameter, TResult>(operationName, parameter));
+            // executing
+            return await this.OperateAsync<TResult>(
+                operationName,
+                this.GetParameters(parameter, operationName));
         }
 
         /// <summary>
-        /// Operates the action
+        /// Operates the database action with the given first and second entity parameters.
         /// </summary>
-        /// <typeparam name="TFirstParameter">Type of first parameter</typeparam>
-        /// <typeparam name="TSecondParameter">Type of second parameter</typeparam>
-        /// <typeparam name="TResult">Type of result</typeparam>
-        /// <param name="operationName">Operation name</param>
-        /// <param name="firstParameter">First parameter</param>
-        /// <param name="secondParameter">Second parameter</param>
-        /// <returns>result</returns>
-        public object Operate<TFirstParameter,TSecondParameter,TResult>(string operationName,TFirstParameter firstParameter,TSecondParameter secondParameter)
+        /// <typeparam name="TFirstParameter">Type of first parameter.</typeparam>
+        /// <typeparam name="TSecondParameter">Type of second parameter.</typeparam>
+        /// <typeparam name="TResult">Type of result.</typeparam>
+        /// <param name="operationName">Operation name.</param>
+        /// <param name="firstParameter">first parameter</param>
+        /// <param name="secondParameter">second parameter</param>
+        /// <returns>result of db action</returns>
+        public async Task<object> OperateAsync<TFirstParameter,TSecondParameter,TResult>(
+            string operationName,
+            TFirstParameter firstParameter,
+            TSecondParameter secondParameter)
             where TResult:class
         {
-            // getting parameters
-            var parameters = this
-                .GetParameters(firstParameter, operationName)
-                .ToList();
+            var firstParameters = this.GetParameters(firstParameter, operationName);
+            var secondParameters = this.GetParameters(secondParameter, operationName);
 
-            // adding parameter
-            parameters.AddRange(this.GetParameters(secondParameter, operationName));
-
-            // returning result
-            return this.Operate<TResult>(operationName, parameters);
+            return await this.OperateAsync<TResult>(
+                operationName,
+                firstParameters.Concat(secondParameters));
         }
 
+        #endregion
+
+        #region private helper methods
+
         /// <summary>
-        /// Gets operation information
+        /// Gets operation info with operation name.
         /// </summary>
-        /// <param name="operationName">Operation name</param>
-        /// <returns>operation information</returns>
+        /// <param name="operationName">operation name</param>
+        /// <returns>operation info</returns>
         private OperationInfo GetOperationInfo(string operationName)
         {
             // constructing and returning operation information
@@ -167,11 +154,11 @@ namespace AccessCore.Repository
         }
 
         /// <summary>
-        /// Gets parameters using mapping information
+        /// Constructs parameters.
         /// </summary>
-        /// <param name="mapInfo">Mapping information</param>
-        /// <param name="parameters">Parameters</param>
-        /// <returns>result</returns>
+        /// <param name="mapInfo">mapping informtaion</param>
+        /// <param name="parameters">parameter values</param>
+        /// <returns>mapped pairs of parameters and values</returns>
         private IEnumerable<KeyValuePair<string, object>> ConstructParameters(
             Dictionary<string, string> mapInfo, IEnumerable<KeyValuePair<string, object>> parameters)
         {
@@ -181,12 +168,12 @@ namespace AccessCore.Repository
         }
 
         /// <summary>
-        /// Gets properties as operation parameters from complex parameter using reflection
+        /// Gets parameters from entity.
         /// </summary>
-        /// <typeparam name="TParameter">Type of parameter</typeparam>
+        /// <typeparam name="TParameter">Type of parameter.</typeparam>
         /// <param name="parameter">parameter</param>
-        /// <param name="opName">Operation name.</param>
-        /// <returns>parameters</returns>
+        /// <param name="opName">operation name</param>
+        /// <returns>pairs of parameters and their values</returns>
         private IEnumerable<KeyValuePair<string, object>> GetParameters<TParameter>(
             TParameter parameter,
             string opName)
@@ -212,10 +199,10 @@ namespace AccessCore.Repository
         }
 
         /// <summary>
-        /// Gets parameter getter if it exists in cached getters otherwise creates new one
+        /// Gets parameter getter.
         /// </summary>
-        /// <typeparam name="TParameter">Type of parameter.</typeparam>
-        /// <param name="opName">Operation name.</param>
+        /// <typeparam name="TParameter">Type of parameter</typeparam>
+        /// <param name="opName">operation name</param>
         /// <returns>getter</returns>
         private Func<TParameter,List<KeyValuePair<string,object>>> GetParamaterGetter<TParameter>(string opName)
         {
@@ -316,5 +303,7 @@ namespace AccessCore.Repository
             // returning getter
             return getter;
         }
+
+        #endregion
     }
 }

@@ -2,21 +2,24 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AccessCore.SpExecuters
 {
     /// <summary>
-    /// Class for executing stored procedures in MS SQL Server
+    /// Class for executing stored procedures in MsSQL DB engine.
     /// </summary>
     public class MsSqlSpExecuter : SpExecuter
     {
+        #region constructors
+
         /// <summary>
-        /// Creates new instance of the <see cref="MsSqlSpExecuter"/>
+        /// Creates new instance of <see cref="MsSqlSpExecuter"/>
         /// </summary>
-        /// <param name="userId">user id</param>
-        /// <param name="password">password</param>
+        /// <param name="userId">user ID</param>
+        /// <param name="password">user password</param>
         /// <param name="server">server</param>
-        /// <param name="database">database</param>
+        /// <param name="database">database name</param>
         public MsSqlSpExecuter(string userId, string password, string server, string database) 
             : this(MsSqlSpExecuter.ConstructConnectionString(userId, password, server, database))
         {
@@ -25,18 +28,22 @@ namespace AccessCore.SpExecuters
         /// <summary>
         /// Creates new instance of <see cref="MsSqlSpExecuter"/>
         /// </summary>
-        /// <param name="connString">Connection string</param>
+        /// <param name="connString">connection string</param>
         public MsSqlSpExecuter(string connString) : base(connString)
         {
         }
 
+        #endregion
+
+        #region protected override methods
+
         /// <summary>
-        /// Executes MS SQL Server stored procedure.
+        /// Executes the stored procedure asynchonously in MsSQL db engine.
         /// </summary>
-        /// <typeparam name="TResult">Type of result.</typeparam>
-        /// <param name="storedProcedure">Stored procedure.</param>
+        /// <typeparam name="TResult">Type of result</typeparam>
+        /// <param name="storedProcedure">stored procedure</param>
         /// <returns>result</returns>
-        internal override object Execute<TResult>(StoredProcedure storedProcedure)
+        protected async override Task<object> ExecuteAsync<TResult>(StoredProcedure storedProcedure)
         {
             // checking argument
             if (string.IsNullOrEmpty(storedProcedure.Name))
@@ -48,10 +55,10 @@ namespace AccessCore.SpExecuters
             using (var sqlConnection = new SqlConnection(this._connString))
             {
                 // constructing command
-                using (var sqlCommand = this.ConstructCommand(sqlConnection, storedProcedure))
+                using (var sqlCommand = ConstructCommand(sqlConnection, storedProcedure))
                 {
                     // opening connection
-                    sqlConnection.Open();
+                    await sqlConnection.OpenAsync();
 
                     // executing stored procedures depending on their type
                     if (storedProcedure.StoredProcedureReturnData == StoredProcedureReturnData.Enumerable)
@@ -60,9 +67,9 @@ namespace AccessCore.SpExecuters
                         var list = new List<TResult>();
 
                         // executing reader and retrieving data
-                        using (var reader = sqlCommand.ExecuteReader())
+                        using (var reader = await sqlCommand.ExecuteReaderAsync())
                         {
-                            while (reader.Read())
+                            while (await reader.ReadAsync())
                             {
                                 list.Add(this.RetrieveEnumerableFromReader<TResult, SqlDataReader>(reader));
                             }
@@ -73,21 +80,21 @@ namespace AccessCore.SpExecuters
                     }
                     else if (storedProcedure.StoredProcedureReturnData == StoredProcedureReturnData.OneRow)
                     {
-                        using (var reader = sqlCommand.ExecuteReader())
+                        using (var reader = await sqlCommand.ExecuteReaderAsync())
                         {
-                            reader.Read();
+                            await reader.ReadAsync();
                             return this.RetrieveEnumerableFromReader<TResult, SqlDataReader>(reader);
                         }
                     }
                     else if (storedProcedure.StoredProcedureReturnData == StoredProcedureReturnData.Scalar)
                     {
                         // returning scalar result
-                        return sqlCommand.ExecuteScalar();
+                        return await sqlCommand.ExecuteScalarAsync();
                     }
                     else
                     {
                         // returning amount of affected rows after non-query stored procedure execution
-                        sqlCommand.ExecuteNonQuery();
+                        await sqlCommand.ExecuteNonQueryAsync();
 
                         return sqlCommand.Parameters["ReturnValue"].Value;
                     }
@@ -95,13 +102,17 @@ namespace AccessCore.SpExecuters
             }
         }
 
+        #endregion
+
+        #region private helper methods
+
         /// <summary>
-        /// Constructs Sql Command
+        /// Constructs MS SQL command.
         /// </summary>
-        /// <param name="sqlConnection">Sql Connection</param>
-        /// <param name="storedProcedure">Stored procedure</param>
-        /// <returns>Constructed command</returns>
-        private SqlCommand ConstructCommand(SqlConnection sqlConnection, StoredProcedure storedProcedure)
+        /// <param name="sqlConnection">SQL connection</param>
+        /// <param name="storedProcedure">stored procedure</param>
+        /// <returns>SQL Command</returns>
+        private static SqlCommand ConstructCommand(SqlConnection sqlConnection, StoredProcedure storedProcedure)
         {
             // constructing command
             var sqlCommand = new SqlCommand
@@ -137,12 +148,12 @@ namespace AccessCore.SpExecuters
         }
 
         /// <summary>
-        /// Constructs connection string from the given parameters.
+        /// Constructs connection string.
         /// </summary>
-        /// <param name="userId">user id</param>
-        /// <param name="password">password</param>
+        /// <param name="userId">user ID</param>
+        /// <param name="password">user password</param>
         /// <param name="server">server</param>
-        /// <param name="database">database</param>
+        /// <param name="database">database name</param>
         /// <returns>connection string</returns>
         private static string ConstructConnectionString(
             string userId, string password, string server, string database)
@@ -154,5 +165,7 @@ namespace AccessCore.SpExecuters
             builder.InitialCatalog = database;
             return builder.ToString();
         }
+
+        #endregion
     }
 }

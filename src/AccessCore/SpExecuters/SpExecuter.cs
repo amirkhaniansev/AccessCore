@@ -6,149 +6,146 @@ using System.Threading.Tasks;
 using System.Linq.Expressions;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using AccessCore.Helpers;
 
 namespace AccessCore.SpExecuters
 {
     /// <summary>
-    /// Class for accessing data from database executing procedures.
-    /// Works only with MS SQL server. 
+    /// Base class for executing stored procedure.
+    /// Override this class for the given database.
+    /// AccessCore providers MySql and MsSql overrides.
+    /// However AccessCore can be used for any relational database.
     /// </summary>
     public abstract class SpExecuter : ISpExecuter
     {
+        #region fields
+
         /// <summary>
-        /// SQL server connection string
+        /// Connection string
         /// </summary>
         protected readonly string _connString;
 
         /// <summary>
-        /// Dictionary of  cached properties
+        /// Cached properties for entities.
         /// </summary>
         protected readonly ConcurrentDictionary<Type, PropertyInfo[]> _cachedProperties;
 
         /// <summary>
-        /// Dictionary of cached mappers
+        /// Cached mappers.
         /// </summary>
         protected readonly ConcurrentDictionary<Type, Delegate> _cachedMappers;
-        
+
+        #endregion
+
+        #region constructors
+
         /// <summary>
-        /// Creates new instance of <see cref="SpExecuter"/> with the given connection string.
+        /// Creates new instance of <see cref="SpExecuter"/>
         /// </summary>
-        /// <param name="connString"></param>
+        /// <param name="connString">database connection string.</param>
         public SpExecuter(string connString)
         {
-            // sets connection string
+            // intializing
             this._connString = connString;
-
-            // initializes cached properties
-            this._cachedProperties = new ConcurrentDictionary<Type, PropertyInfo[]>();
-
-            // initializes cached mappers
+            this._cachedProperties = new ConcurrentDictionary<Type, PropertyInfo[]>();            
             this._cachedMappers = new ConcurrentDictionary<Type, Delegate>();
         }
 
+        #endregion
+
+        #region public API
+
         /// <summary>
-        /// Executes store procedure which return data is enumerable.
+        /// Executes stored procedure asynchronously which return type is enumerable.
         /// </summary>
-        /// <typeparam name="TResult">Type of Result.</typeparam>
-        /// <param name="procedureName">Procedure name</param>
-        /// <param name="parameters">Procedure parameters</param>
-        /// <returns>Enumerable of rows</returns>
-        public IEnumerable<TResult> ExecuteSp<TResult>(string procedureName, IEnumerable<KeyValuePair<string, object>> parameters = null)
-            where TResult : class
+        /// <typeparam name="TEntity">Type of entity</typeparam>
+        /// <param name="procedureName">stored procedure name</param>
+        /// <param name="parameters">parameters</param>
+        /// <returns>enumerable</returns>
+        public async Task<IEnumerable<TEntity>> ExecuteSpAsync<TEntity>(
+            string procedureName, 
+            IEnumerable<KeyValuePair<string, object>> parameters = null) 
+            where TEntity : class
         {
-            // returning result
-            return (IEnumerable<TResult>)this.Execute<TResult>(new StoredProcedure
-            {
-                Name = procedureName,
-                StoredProcedureReturnData = StoredProcedureReturnData.Enumerable,
-                Parameters = parameters
-            });
+            return await this.GetSpResult<TEntity, IEnumerable<TEntity>>(
+                procedureName,
+                parameters,
+                StoredProcedureReturnData.Enumerable);
         }
 
         /// <summary>
-        /// Executes stored procedure which return data is one row.
+        /// Executes stored procedure asynchrnously which return data is one row.
         /// </summary>
-        /// <typeparam name="TResult">Type of resutlt</typeparam>
+        /// <typeparam name="TResult">Type of result</typeparam>
         /// <param name="procedureName">Stored procedure name.</param>
         /// <param name="parameters">Stored proceduer parameters</param>
         /// <returns>Result which is one row in SQL table.</returns>
-        public TResult ExecuteEntitySp<TResult>(string procedureName, IEnumerable<KeyValuePair<string, object>> parameters = null)
+        public async Task<TResult> ExecuteEntitySpAsync<TResult>(
+            string procedureName, 
+            IEnumerable<KeyValuePair<string, object>> parameters = null) 
             where TResult : class
         {
-            // returning result
-            return (TResult)this.Execute<TResult>(new StoredProcedure
-            {
-                Name = procedureName,
-                StoredProcedureReturnData = StoredProcedureReturnData.OneRow,
-                Parameters = parameters
-            });
+            return await this.GetSpResult<TResult, TResult>(
+                procedureName,
+                parameters,
+                StoredProcedureReturnData.OneRow);
         }
 
         /// <summary>
-        /// Executes store procedure asynchronously which return data is enumerable.
-        /// </summary>
-        /// <typeparam name="TResult">Type of result</typeparam>
-        /// <param name="procedureName">Procedure name</param>
-        /// <param name="parameters">Parameters</param>
-        /// <returns>Enumerable of rows</returns>
-        public Task<IEnumerable<TResult>> ExecuteSpAsync<TResult>(string procedureName,
-                    IEnumerable<KeyValuePair<string, object>> parameters = null) where TResult : class
-        {
-            return Task.Run(() => this.ExecuteSp<TResult>(procedureName, parameters));
-        }
-
-        /// <summary>
-        /// Executes store procedure which return data is scalar.
+        /// Executes store procedure asynchronously which return data is scalar.
         /// </summary>
         /// <typeparam name="TResult">Type of Result</typeparam>
         /// <param name="procedureName">Procedure name</param>
         /// <param name="parameters">Procedure Parameters</param>
         /// <returns>Scalar result</returns>
-        public TResult ExecuteScalarSp<TResult>(string procedureName, IEnumerable<KeyValuePair<string, object>> parameters = null)
+        public async Task<TResult> ExecuteScalarSpAsync<TResult>(
+            string procedureName, 
+            IEnumerable<KeyValuePair<string, object>> parameters = null) 
             where TResult : class
         {
-            // returning result
-            return (TResult)this.Execute<TResult>(new StoredProcedure
-            {
-                Name = procedureName,
-                StoredProcedureReturnData = StoredProcedureReturnData.Scalar,
-                Parameters = parameters
-            });
+            return await this.GetSpResult<TResult, TResult>(
+                procedureName,
+                parameters,
+                StoredProcedureReturnData.Scalar);
         }
 
         /// <summary>
-        /// Executes store procedure which doesn't have return data.
+        /// Executes store procedure asynchroosuly which doesn't have return data.
         /// </summary>
         /// <param name="procedureName">Procedure name</param>
         /// <param name="parameters">Procedure parameters</param>
         /// <returns>Amount of affected rows</returns>
-        public int ExecuteSpNonQuery(string procedureName, IEnumerable<KeyValuePair<string, object>> parameters = null)
+        public async Task<int> ExecuteSpNonQueryAsync(
+            string procedureName, 
+            IEnumerable<KeyValuePair<string, object>> parameters = null)
         {
-            // returning amount of affected rows
-            return (int)this.Execute<object>(new StoredProcedure
-            {
-                Name = procedureName,
-                StoredProcedureReturnData = StoredProcedureReturnData.Nothing,
-                Parameters = parameters
-            });
+            return await this.GetSpResult<object, int>(
+                procedureName,
+                parameters,
+                StoredProcedureReturnData.Nothing);
         }
 
+        #endregion
+
+        #region protected methods
+
         /// <summary>
-        /// Executes the given stored procedure.
+        /// Executes the stored procedure asynchonously.
+        /// Overriding this method you can have AccessCore functionality with any database engine.
         /// </summary>
         /// <typeparam name="TResult">Type of result</typeparam>
-        /// <param name="storedProcedure">Stored procedure</param>
-        /// <returns>Result of stored procedure execution</returns>
-        internal abstract object Execute<TResult>(StoredProcedure storedProcedure) 
+        /// <param name="storedProcedure">stored procedure</param>
+        /// <returns>result</returns>
+        protected abstract Task<object> ExecuteAsync<TResult>(StoredProcedure storedProcedure)
             where TResult : class;
-       
+
         /// <summary>
-        /// Retrieves data from reader
+        /// Retrieves enumerable from reader.
         /// </summary>
-        /// <typeparam name="TResult">Type of result</typeparam>
-        /// <typeparam name="TDataReader">Type of data reader</typeparam>
-        /// <param name="reader">Reader</param>
-        /// <returns>Result</returns>
+        /// <typeparam name="TResult">Type of result.</typeparam>
+        /// <typeparam name="TDataReader">Type of data reader.</typeparam>
+        /// <param name="reader">reader</param>
+        /// <returns>result</returns>
         protected TResult RetrieveEnumerableFromReader<TResult, TDataReader>(TDataReader reader) 
             where TResult : class
             where TDataReader : DbDataReader
@@ -260,15 +257,19 @@ namespace AccessCore.SpExecuters
             return mapper;
         }
 
+        #endregion
+
+        #region private helper methods
+
         /// <summary>
-        /// Gets properties from the cached properties if they exist,otherwise gets with reflection and adds them to cached properties
+        /// Gets properties from entity.
         /// </summary>
-        /// <typeparam name="TResult">Type of result</typeparam>
-        /// <returns>Properties</returns>
-        private PropertyInfo[] GetProperties<TResult>()
+        /// <typeparam name="TEntity">type of entity</typeparam>
+        /// <returns>array of property infos</returns>
+        private PropertyInfo[] GetProperties<TEntity>()
         {
             // getting type of properties
-            var type = typeof(TResult);
+            var type = typeof(TEntity);
 
             // checking if dictionary of cached properties contains properties of the given type
             if (this._cachedProperties.ContainsKey(type))
@@ -284,5 +285,28 @@ namespace AccessCore.SpExecuters
             // returning properties
             return properties;
         }
+        
+        /// <summary>
+        /// Gets stored procedure result.
+        /// </summary>
+        /// <typeparam name="TEntity">Type of entity.</typeparam>
+        /// <typeparam name="TResult">Type of result.</typeparam>
+        /// <param name="name">name of stored procedure</param>
+        /// <param name="parameters">parameters of stored procedure</param>
+        /// <param name="storedProcedureReturnData">stored procedure return data type</param>
+        /// <returns>result</returns>
+        private async Task<TResult> GetSpResult<TEntity, TResult>(
+            string name,
+            IEnumerable<KeyValuePair<string, object>> parameters,
+            StoredProcedureReturnData storedProcedureReturnData)
+            where TEntity : class
+        {
+            var sp = SpHelper.CreateSp(name, parameters, storedProcedureReturnData);
+            var dbResult = await this.ExecuteAsync<TEntity>(sp);
+            var result = SpHelper.GetResult<TResult>(dbResult);
+            return result;
+        }
+
+        #endregion
     }
 }

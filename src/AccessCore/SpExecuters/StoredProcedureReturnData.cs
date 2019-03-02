@@ -3,7 +3,7 @@
     /// <summary>
     /// Enum for stored procedure return data
     /// </summary>
-    internal enum StoredProcedureReturnData
+    public enum StoredProcedureReturnData
     {
         Enumerable,
         OneRow,
@@ -11,4 +11,3 @@
         Nothing
     }
 }
-

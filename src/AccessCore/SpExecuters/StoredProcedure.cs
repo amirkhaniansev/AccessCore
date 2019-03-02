@@ -5,7 +5,7 @@ namespace AccessCore.SpExecuters
     /// <summary>
     /// Class for stored procedures
     /// </summary>
-    internal class StoredProcedure
+    public class StoredProcedure
     {
         /// <summary>
         /// Gets os sets name of stored procedure

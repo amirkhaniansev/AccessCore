@@ -4,56 +4,54 @@ using System.Threading.Tasks;
 namespace AccessCore.SpExecuters
 {
     /// <summary>
-    /// Interface for accessing database
+    /// Interface for executing stored procedures.
     /// </summary>
     public interface ISpExecuter
     {
         /// <summary>
-        /// Executes store procedure which return data is enumerable.
+        /// Executes stored procedure asynchronously which return type is enumerable.
         /// </summary>
-        /// <typeparam name="TResult">Type of Result.</typeparam>
-        /// <param name="procedureName">Proceduer name</param>
-        /// <param name="parameters">Procedure parametes</param>
-        /// <returns>Enumerable of rows</returns>
-        IEnumerable<TResult> ExecuteSp<TResult>(string procedureName, IEnumerable<KeyValuePair<string, object>> parameters = null)
-            where TResult : class;
+        /// <typeparam name="TEntity">Type of entity</typeparam>
+        /// <param name="procedureName">stored procedure name</param>
+        /// <param name="parameters">parameters</param>
+        /// <returns>enumerable</returns>
+        Task<IEnumerable<TEntity>> ExecuteSpAsync<TEntity>(
+            string procedureName, 
+            IEnumerable<KeyValuePair<string, object>> parameters = null)
+            where TEntity : class;
 
         /// <summary>
-        /// Executes stored procedure which return data is one row.
+        /// Executes stored procedure asynchrnously which return data is one row.
         /// </summary>
-        /// <typeparam name="TResult">Type of resutlt</typeparam>
+        /// <typeparam name="TResult">Type of result</typeparam>
         /// <param name="procedureName">Stored procedure name.</param>
         /// <param name="parameters">Stored proceduer parameters</param>
         /// <returns>Result which is one row in SQL table.</returns>
-        TResult ExecuteEntitySp<TResult>(string procedureName, IEnumerable<KeyValuePair<string, object>> parameters = null)
+        Task<TResult> ExecuteEntitySpAsync<TResult>(
+            string procedureName, 
+            IEnumerable<KeyValuePair<string, object>> parameters = null)
             where TResult : class;
-
+        
         /// <summary>
-        /// Executes store procedure asynchronously which return data is enumerable.
-        /// </summary>
-        /// <typeparam name="TResult">Type of result</typeparam>
-        /// <param name="procedureName">Procedure name</param>
-        /// <param name="parameters">Parameters</param>
-        /// <returns>Enumerable of rows</returns>
-        Task<IEnumerable<TResult>> ExecuteSpAsync<TResult>(string procedureName,
-                    IEnumerable<KeyValuePair<string, object>> parameters = null) where TResult : class;
-
-        /// <summary>
-        /// Executes store procedure which return data is scalar.
+        /// Executes store procedure asynchronously which return data is scalar.
         /// </summary>
         /// <typeparam name="TResult">Type of Result</typeparam>
         /// <param name="procedureName">Procedure name</param>
         /// <param name="parameters">Procedure Parameters</param>
         /// <returns>Scalar result</returns>
-        TResult ExecuteScalarSp<TResult>(string procedureName, IEnumerable<KeyValuePair<string, object>> parameters = null)
+        Task<TResult> ExecuteScalarSpAsync<TResult>(
+            string procedureName, 
+            IEnumerable<KeyValuePair<string, object>> parameters = null)
             where TResult : class;
 
         /// <summary>
-        /// Executes store procedure which doesn't have return data.
+        /// Executes store procedure asynchroosuly which doesn't have return data.
         /// </summary>
         /// <param name="procedureName">Procedure name</param>
         /// <param name="parameters">Procedure parameters</param>
         /// <returns>Amount of affected rows</returns>
-        int ExecuteSpNonQuery(string procedureName, IEnumerable<KeyValuePair<string, object>> parameters = null);
+        Task<int> ExecuteSpNonQueryAsync(
+            string procedureName, 
+            IEnumerable<KeyValuePair<string, object>> parameters = null);
     }
 }
