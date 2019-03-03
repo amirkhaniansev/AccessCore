@@ -80,13 +80,13 @@ namespace AccessCore.Repository
 
             // executing specific operation
             if (operationInfo.ReturnDataType == ReturnDataType.Entity)
-                return await this._spExecuter.ExecuteEntitySpAsync<TResult>(operationInfo.SpName, parameters);
+                return await this._spExecuter.ExecuteEntitySpAsync<TResult>(operationInfo.SpName, spParams);
 
             if (operationInfo.ReturnDataType == ReturnDataType.Enumerable)
-                return await this._spExecuter.ExecuteSpAsync<TResult>(operationInfo.SpName, parameters);
+                return await this._spExecuter.ExecuteSpAsync<TResult>(operationInfo.SpName, spParams);
 
             if (operationInfo.ReturnDataType == ReturnDataType.Scalar)
-                return await this._spExecuter.ExecuteScalarSpAsync<TResult>(operationInfo.SpName, parameters);
+                return await this._spExecuter.ExecuteScalarSpAsync<TResult>(operationInfo.SpName, spParams);
 
             return await this._spExecuter.ExecuteSpNonQueryAsync(operationInfo.SpName, spParams);
         }
